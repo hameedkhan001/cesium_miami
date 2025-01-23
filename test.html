@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <!-- Include the CesiumJS JavaScript and CSS files -->
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <script src="./libs/Cesium-1.125/Build/Cesium/Cesium.js"></script>
+  <script src="./libs/Cesium-1.125Apps/Sandcastle/Sandcastle-header.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.js"
+    integrity="sha512-rozBdNtS7jw9BlC76YF1FQGjz17qQ0J/Vu9ZCFIW374sEy4EZRbRcUZa2RU/MZ90X2mnLU56F75VfdToGV0RiA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link rel="stylesheet" href="./fontawesome-free-6.1.2-web/css/all.css" />
+</head>
+
+<body>
+  <div id="cesiumContainer" class="fullSize"></div>
+  <!-- Add legend div -->
+  <script type="text/javascript">
+    var viewer = new Cesium.Viewer("cesiumContainer", {
+      shouldAnimate: true,
+    });
+
+    // Load and display GeoJSON data with custom styling
+
+    // Load the "miami.geojson" file
+    var miami = Cesium.GeoJsonDataSource.load("miami.geojson", {
+      stroke: new Cesium.Color(0.0, 1.0, 0.0, 1.0), // Black color with full opacity
+      strokeWidth: 40.0, // Increase the stroke width to 40.0
+      fill: new Cesium.Color(0.0, 0.0, 0.0, 0.0), // No fill (transparent)
+      extrudedHeight: 0.1, // Adjust the extrusion height as needed
+    });
+    miami.then(function (dataSource) {
+      viewer.dataSources.add(dataSource); // Add the loaded data source to the viewer
+    });
+
+    // Load the "miami survey.geojson" file for point data
+    var surveyPoints = Cesium.GeoJsonDataSource.load("miami survey.geojson");
+    surveyPoints.then(function (dataSource) {
+      viewer.dataSources.add(dataSource); // Add the loaded point data source to the viewer
+
+      // Customize the point styling based on "Ballot_Initiative_Vote" values
+      var entities = dataSource.entities.values;
+      entities.forEach(function (entity) {
+        var ballotInitiativeVote = entity.properties.Ballot_Initiative_Vote.getValue();
+        var color;
+
+        switch (ballotInitiativeVote) {
+          case 'In Favor':
+            color = new Cesium.Color(0.0, 0.0, 1.0, 0.8); // Blue
+            break;
+          case 'Against':
+            color = new Cesium.Color(1.0, 0.0, 0.0, 0.8); // Red
+            break;
+          case 'Undecided':
+            color = new Cesium.Color(0.5, 0.0, 0.5, 0.8); // Purple
+            break;
+          default:
+            color = new Cesium.Color(0.5, 0.5, 0.5, 0.8); // Grey for Null or empty values
+            break;
+        }
+
+        // Access Contact_FirstName and other attributes
+        var contactFirstName = entity.properties.Contact_FirstName ? entity.properties.Contact_FirstName.getValue() : 'Unknown';
+        var contactLastName = entity.properties.Contact_LastName ? entity.properties.Contact_LastName.getValue() : 'Unknown';
+
+        entity.point = {
+          pixelSize: 20, // You can adjust the size of the point as needed
+          color: color,
+          id: contactFirstName + ' ' + contactLastName, // Set an ID for the point
+        };
+
+        // Add click event to show attribute information
+        entity.description = '<table><tr><th>Attribute</th><th>Value</th></tr>' +
+          '<tr><td>Contact_Sex</td><td>' + entity.properties.Contact_Sex.getValue() + '</td></tr>' +
+          '<tr><td>Contact_FirstName</td><td>' + contactFirstName + '</td></tr>' +
+          '<tr><td>Contact_LastName</td><td>' + contactLastName + '</td></tr>' +
+          '<tr><td>Ballot_Initiative_Awareness</td><td>' + entity.properties.Ballot_Initiative_Awareness.getValue() + '</td></tr>' +
+          '<tr><td>Ballot_Initiative_Advocacy_Interaction</td><td>' + entity.properties.Ballot_Initiative_Advocacy_Interaction.getValue() + '</td></tr>' +
+          '<tr><td>NearTotal_Abortion_Ban_Impact_Concern</td><td>' + entity.properties.NearTotal_Abortion_Ban_Impact_Concern.getValue() + '</td></tr>' +
+          '<tr><td>ProBallot_Initiative_Candidate_Support</td><td>' + entity.properties.ProBallot_Initiative_Candidate_Support.getValue() + '</td></tr>' +
+          '<tr><td>Personal_Abortion_Ban_Impact</td><td>' + entity.properties.Personal_Abortion_Ban_Impact.getValue() + '</td></tr>' +
+          '<tr><td>Ballot_Initiative_Petition_Participation</td><td>' + entity.properties.Ballot_Initiative_Petition_Participation.getValue() + '</td></tr>' +
+          '<tr><td>Ballot_Initiative_Vote</td><td>' + entity.properties.Ballot_Initiative_Vote.getValue() + '</td></tr>' +
+          '<tr><td>Full Address</td><td>' + entity.properties["Full Address"].getValue() + '</td></tr>' +
+          // Add other attributes here
+          '</table>';
+
+        entity.click = function () {
+          viewer.selectedEntity = entity;
+        };
+      });
+    });
+    // County Boundry
+    var boundrySource = Cesium.GeoJsonDataSource.load("connty boundry.geojson", {
+      stroke: Cesium.Color.BLACK, // Change stroke color to black
+      strokeWidth: 5,
+      fill: Cesium.Color.BLACK.withAlpha(0.5), // Change fill color to black with 50% transparency
+      extrudedHeight: 0.1,
+    });
+    viewer.dataSources.add(boundrySource);
+
+    // Start off looking at Florida.
+    viewer.camera.setView({
+      destination: Cesium.Rectangle.fromDegrees(-80.1917902, 25.7616798, -80.1376407, 25.8042449), // Miami's bounding box
+    });
+  </script>
+</body>
+
+</html>
